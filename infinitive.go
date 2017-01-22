@@ -27,7 +27,9 @@ type TStatZoneConfig struct {
 type AirHandler struct {
 	BlowerRPM  uint16 `json:"blowerRPM"`
 	AirFlowCFM uint16 `json:"airFlowCFM"`
-	ElecHeat   bool   `json:"elecHeat"`
+	ElecHeat   uint8   `json:"elecHeat"`
+	FurnaceHeat   uint8   `json:"furnaceHeat"`
+	HeatBits   string   `json:"heatBits"`
 }
 
 type HeatPump struct {
@@ -128,7 +130,13 @@ func attachSnoops() {
 				cache.update("blower", &airHandler)
 			} else if bytes.Equal(frame.data[0:3], []byte{0x00, 0x03, 0x16}) {
 				airHandler.AirFlowCFM = binary.BigEndian.Uint16(data[4:8])
-				airHandler.ElecHeat = data[0]&0x03 != 0
+				airHandler.HeatBits = fmt.Sprintf("%08b", data[0])
+				if frame.src >= 0x4200 && frame.src <= 0x42ff {
+					airHandler.ElecHeat = data[0]&0x03
+				}
+				if frame.src >= 0x4000 && frame.src <= 0x41ff {
+					airHandler.FurnaceHeat = data[0]&0x03
+				}
 				log.Debugf("air flow CFM is: %d", airHandler.AirFlowCFM)
 				cache.update("blower", &airHandler)
 			}
