@@ -39,9 +39,14 @@ type HeatPump struct {
 var infinity *InfinityProtocol
 
 func getConfig() (*TStatZoneConfig, bool) {
+	retries : = 5
 	cfg := TStatZoneParams{}
 	ok := infinity.ReadTable(devTSTAT, &cfg)
-	if !ok {
+	// If we get zero back then try again a reasonable number of times
+	for i:=0;  cfg.Z1HeatSetpoint == 0 && i<retries ; i++ {
+		ok = infinity.ReadTable(devTSTAT, &cfg)
+	} 
+	if (!ok) || cfg.Z1HeatSetpoint == 0 {
 		return nil, false
 	}
 
