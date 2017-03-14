@@ -43,8 +43,8 @@ func getConfig() (*TStatZoneConfig, bool) {
 	cfg := TStatZoneParams{}
 	ok := infinity.ReadTable(devTSTAT, &cfg)
 	// If we get zero back then try again a reasonable number of times
-	for i:=0;  cfg.Z1HeatSetpoint == 0 && i<retries ; i++ {
-		log.Debugf("Failed to get TStatZoneParams")
+	for i:=0;  ok && cfg.Z1HeatSetpoint == 0 && i<retries ; i++ {
+		log.Debugf("Bad data obtained for TStatZoneParams")
 		log.Debugf("Data was %+v", cfg)
 		log.Debugf("About to retry:%d", i)
 		ok = infinity.ReadTable(devTSTAT, &cfg)
@@ -56,8 +56,8 @@ func getConfig() (*TStatZoneConfig, bool) {
 	params := TStatCurrentParams{}
 	ok = infinity.ReadTable(devTSTAT, &params)
 	// bad value for currentTemp has been 1
-	for i:=0;  params.Z1CurrentTemp == 1 && i<retries ; i++ {
-		log.Debugf("Failed to get TStatCurrentParams")
+	for i:=0;  ok && params.Z1CurrentTemp == 1 && i<retries ; i++ {
+		log.Debugf("Bad data obtained for TStatCurrentParams")
 		log.Debugf("Data was %+v", params)
 		log.Debugf("About to retry:%d", i)
 		ok = infinity.ReadTable(devTSTAT, &params)
