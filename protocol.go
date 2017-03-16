@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"time"
+	"reflect"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/tarm/serial"
@@ -211,6 +212,7 @@ func (p *InfinityProtocol) send(dst uint16, op uint8, requestData []byte, respon
 	if ok && op == opREAD && act.responseFrame != nil && act.responseFrame.data != nil && len(act.responseFrame.data) > 6 {
 		r := bytes.NewReader(act.responseFrame.data[6:])
 		binary.Read(r, binary.BigEndian, response)
+		log.Debugf("Reading %v :%x", reflect.TypeOf(response), act.responseFrame.data)
 		// log.Printf("%+v", data)
 	}
 

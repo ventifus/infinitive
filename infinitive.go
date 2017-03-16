@@ -40,32 +40,34 @@ var infinity *InfinityProtocol
 
 func getConfig() (*TStatZoneConfig, bool) {
 	retries := 5
-	cfg := TStatZoneParams{}
+	cfg := TStatZoneParams{Z8FanMode : 99}
 	ok := infinity.ReadTable(devTSTAT, &cfg)
 	// If we get zero back then try again a reasonable number of times
 	for i:=0;  ok && cfg.Z1HeatSetpoint == 0 && i<retries ; i++ {
-		log.Debugf("Bad data obtained for TStatZoneParams")
-		log.Debugf("Data was %+v", cfg)
-		log.Debugf("About to retry:%d", i)
+		log.Debugf("bad data obtained for TStatZoneParams")
+		log.Debugf("data was %+v", cfg)
+		log.Debugf("about to retry:%d", i)
 		ok = infinity.ReadTable(devTSTAT, &cfg)
 	} 
 	if (!ok) || cfg.Z1HeatSetpoint == 0 {
 		return nil, false
 	}
-
-	params := TStatCurrentParams{}
+	log.Debugf("good data obtained for TStatZoneParams")
+	
+	params := TStatCurrentParams{Z8CurrentHumidity:99}
 	ok = infinity.ReadTable(devTSTAT, &params)
 	// bad value for currentTemp has been 1
 	for i:=0;  ok && params.Z1CurrentTemp == 1 && i<retries ; i++ {
-		log.Debugf("Bad data obtained for TStatCurrentParams")
-		log.Debugf("Data was %+v", params)
-		log.Debugf("About to retry:%d", i)
+		log.Debugf("bad data obtained for TStatCurrentParams")
+		log.Debugf("data was %+v", params)
+		log.Debugf("about to retry:%d", i)
 		ok = infinity.ReadTable(devTSTAT, &params)
 	} 
 	if (!ok) || params.Z1CurrentTemp == 1 {
 		return nil, false
 	}
-
+	log.Debugf("good data obtained for TStatCurrentParams")
+	
 	hold := new(bool)
 	*hold = cfg.ZoneHold&0x01 == 1
 
