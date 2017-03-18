@@ -3,8 +3,8 @@ package main
 import (
 	"bytes"
 	"encoding/binary"
-	"time"
 	"reflect"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/tarm/serial"
@@ -27,11 +27,13 @@ type InfinityProtocolSnoop struct {
 }
 
 type InfinityProtocol struct {
-	device     string
-	port       *serial.Port
-	responseCh chan *InfinityFrame
-	actionCh   chan *Action
-	snoops     []InfinityProtocolSnoop
+	device                                 string
+	port                                   *serial.Port
+	responseCh                             chan *InfinityFrame
+	actionCh                               chan *Action
+	snoops                                 []InfinityProtocolSnoop
+	reportDuration                         time.Duration
+	readCount, readErrors, tableMismatches uint32
 }
 
 type Action struct {
@@ -69,10 +71,38 @@ func (p *InfinityProtocol) Open() error {
 	p.responseCh = make(chan *InfinityFrame, 32)
 	p.actionCh = make(chan *Action)
 
+	// set up reporting of read quality
+	if p.reportDuration == 0 {
+		p.reportDuration = time.Hour * 24
+	}
+	ticker := time.NewTicker(p.reportDuration)
+	go func() {
+		for range ticker.C {
+			p.logReadErrorSummary()
+		}
+	}()
+
 	go p.reader()
 	go p.broker()
 
 	return nil
+}
+
+func (p *InfinityProtocol) resetCounts() {
+	p.readCount = 0
+	p.readErrors = 0
+	p.tableMismatches = 0
+}
+
+func (p *InfinityProtocol) logReadErrorSummary() {
+	readErrorPercent := 100.0 * float32(p.readErrors) / float32(p.readCount)
+	tableMismatchErrorPercent := 100.0 * float32(p.tableMismatches) / float32(p.readCount)
+
+	log.Printf("protocol report for the last %v", p.reportDuration)
+	log.Printf("Total reads: %d", p.readCount)
+	log.Printf("Errors reading data: %d %9.2f%%", p.readErrors, readErrorPercent)
+	log.Printf("Mismatched tables: %d %9.2f%%", p.tableMismatches, tableMismatchErrorPercent)
+	p.resetCounts()
 }
 
 func (p *InfinityProtocol) handleFrame(frame *InfinityFrame) *InfinityFrame {
@@ -210,12 +240,28 @@ func (p *InfinityProtocol) send(dst uint16, op uint8, requestData []byte, respon
 	ok := <-act.ch
 
 	if ok && op == opREAD && act.responseFrame != nil && act.responseFrame.data != nil && len(act.responseFrame.data) > 6 {
+		// Shouldn't a failure of any of the above tests return false from send?
+		// As written the function would return true if a successful response even if there were other problems
+		// Or am I missing some important point?
+		p.readCount++
+		// The following seems to be redundant with the test in performAction
+		// but mismatched tables are getting through to here despite that test
+		reqTable := requestData[0:3]
+		resTable := act.responseFrame.data[0:3]
+		if !bytes.Equal(reqTable, resTable) {
+			log.Printf("Table mismatch in read, found: %x expected: %x", resTable, reqTable)
+			p.tableMismatches++
+			return false
+		}
 		r := bytes.NewReader(act.responseFrame.data[6:])
-		binary.Read(r, binary.BigEndian, response)
 		log.Debugf("Reading %v :%x", reflect.TypeOf(response), act.responseFrame.data)
-		// log.Printf("%+v", data)
+		err := binary.Read(r, binary.BigEndian, response)
+		if err != nil {
+			log.Printf("Read failed:", err)
+			p.readErrors++
+			return false
+		}
 	}
-
 	return ok
 }
 
