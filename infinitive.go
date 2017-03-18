@@ -44,12 +44,14 @@ func getConfig() (*TStatZoneConfig, bool) {
 	if !ok {
 		return nil, false
 	}
+	log.Debugf("good data obtained for TStatZoneParams")
 
 	params := TStatCurrentParams{}
 	ok = infinity.ReadTable(devTSTAT, &params)
 	if !ok {
 		return nil, false
 	}
+	log.Debugf("good data obtained for TStatCurrentParams")
 
 	hold := new(bool)
 	*hold = cfg.ZoneHold&0x01 == 1
@@ -92,7 +94,6 @@ func statePoller() {
 		if ok {
 			cache.update("tstat", c)
 		}
-
 		time.Sleep(time.Second * 1)
 	}
 }
@@ -151,7 +152,7 @@ func main() {
 
 	log.SetLevel(log.DebugLevel)
 
-	infinity = &InfinityProtocol{device: *serialPort}
+	infinity = &InfinityProtocol{device: *serialPort, reportDuration: time.Hour * 24}
 	airHandler := new(AirHandler)
 	heatPump := new(HeatPump)
 	cache.update("blower", airHandler)
