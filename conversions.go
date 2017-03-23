@@ -64,11 +64,3 @@ func stringFanModeToRaw(mode string) (uint8, bool) {
 		return 0, false
 	}
 }
-
-func rawUnitToString(tempUnit uint8) string {
-	if tempUnit&0x1 == 0x1 {
-		return "C"
-	} else {
-		return "F"
-	}
-}
