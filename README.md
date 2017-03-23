@@ -81,6 +81,7 @@ Infinitive exposes a JSON API to retrieve and manipulate thermostat parameters.
 
 ```json
 {
+   "tempUnit": "F",
    "currentTemp": 70,
    "currentHumidity": 50,
    "outdoorTemp": 50,
@@ -110,6 +111,7 @@ rawMode included for debugging purposes. It encodes stage and mode.
 Valid write values for `mode` are `off`, `auto`, `heat`, and `cool`.
 Additional read values for mode are `electric` and `heatpump` indicating "heat pump only" or "electric heat only" have been selected at the thermostat 
 Values for `fanMode` are `auto`, `low`, `med`, and `high`.
+Temperature values must be provided in °F or °C according to how the thermostat is manually configured. 
 
 #### GET /api/zone/1/airhandler
 
@@ -125,12 +127,12 @@ Values for `fanMode` are `auto`, `low`, `med`, and `high`.
 
 ```json
 {
-	"coilTemp":28.8125,
-	"outsideTemp":31.375,
+	"coilTempF":28.8125,
+	"outsideTempF":31.375,
 	"stage":2
 }
 ```
-
+Note: temperatures from the heatpump are in °F irrespective of thermostat setting
 
 #### GET /api/zone/1/vacation
 
@@ -138,6 +140,7 @@ Values for `fanMode` are `auto`, `low`, `med`, and `high`.
 {
    "active":false,
    "days":0,
+   "tempUnit":"F",
    "minTemperature":56,
    "maxTemperature":84,
    "minHumidity":15,
@@ -188,9 +191,6 @@ The USB to RS-485 adapter I'm using periodically locks up due to what appear to 
 [491862.396039] ftdi_sio ttyUSB0: usb_serial_generic_read_bulk_callback - urb stopped: -32
 ```
 Infinitive reopens the serial interface when it hasn't received any data in 5 seconds to workaround the issue.  Alternatively, forcing the Pi USB stack to USB 1.1 mode resolves the issue.  If you want to go this route, add `dwc_otg.speed=1` to `/boot/config.txt` and reboot the Pi.
-
-##### Bogus data
-Occasionally Infinitive will display incorrect data via the web interface for a second.  This is likely caused by improper parsing of data received from the ABCD bus.  I'd like to track down the root cause of this issue and resolve it, but due to its transient nature it's not a high priority and does not affect usability.
 
 #### See Also
 [Infinitude](https://github.com/nebulous/infinitude) is another solution for managing Carrier HVAC systems.  It impersonates Carrier web services and provides an alternate interface for controlling Carrier Internet-enabled touchscreen thermostats.  It also supports passive snooping of the RS-485 bus and can decode and display some of the data.

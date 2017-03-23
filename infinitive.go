@@ -12,6 +12,7 @@ import (
 )
 
 type TStatZoneConfig struct {
+	TempUnit        string `json:"tempUnit"`
 	CurrentTemp     uint8  `json:"currentTemp"`
 	CurrentHumidity uint8  `json:"currentHumidity"`
 	OutdoorTemp     uint8  `json:"outdoorTemp"`
@@ -31,8 +32,8 @@ type AirHandler struct {
 }
 
 type HeatPump struct {
-	CoilTemp    float32 `json:"coilTemp"`
-	OutsideTemp float32 `json:"outsideTemp"`
+	CoilTemp    float32 `json:"coilTempF"`
+	OutsideTemp float32 `json:"outsideTempF"`
 	Stage       uint8   `json:"stage"`
 }
 
@@ -44,19 +45,20 @@ func getConfig() (*TStatZoneConfig, bool) {
 	if !ok {
 		return nil, false
 	}
-	log.Debugf("good data obtained for TStatZoneParams")
+	//log.Debugf("good data obtained for TStatZoneParams")
 
 	params := TStatCurrentParams{}
 	ok = infinity.ReadTable(devTSTAT, &params)
 	if !ok {
 		return nil, false
 	}
-	log.Debugf("good data obtained for TStatCurrentParams")
+	//log.Debugf("good data obtained for TStatCurrentParams")
 
 	hold := new(bool)
 	*hold = cfg.ZoneHold&0x01 == 1
 
 	return &TStatZoneConfig{
+		TempUnit:        rawUnitToString(params.TempUnit),
 		CurrentTemp:     params.Z1CurrentTemp,
 		CurrentHumidity: params.Z1CurrentHumidity,
 		OutdoorTemp:     params.OutdoorAirTemp,
