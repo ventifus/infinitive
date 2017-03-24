@@ -66,6 +66,5 @@ func stringFanModeToRaw(mode string) (uint8, bool) {
 }
 
 func tempFtoC(tempF float32) float32 {
-	return (tempF-32.0)*5.0/9.0
+	return (tempF - 32.0) * 5.0 / 9.0
 }
-

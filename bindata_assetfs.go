@@ -11,10 +11,10 @@
 package main
 
 import (
-	"github.com/elazarl/go-bindata-assetfs"
 	"bytes"
 	"compress/gzip"
 	"fmt"
+	"github.com/elazarl/go-bindata-assetfs"
 	"io"
 	"io/ioutil"
 	"os"
@@ -246,12 +246,12 @@ func AssetNames() []string {
 
 // _bindata is a table, holding each asset generator, mapped to its name.
 var _bindata = map[string]func() (*asset, error){
-	"assets/.DS_Store": assetsDs_store,
-	"assets/app/app.js": assetsAppAppJs,
-	"assets/css/app.css": assetsCssAppCss,
-	"assets/index.html": assetsIndexHtml,
+	"assets/.DS_Store":                   assetsDs_store,
+	"assets/app/app.js":                  assetsAppAppJs,
+	"assets/css/app.css":                 assetsCssAppCss,
+	"assets/index.html":                  assetsIndexHtml,
 	"assets/js/angular-websocket.min.js": assetsJsAngularWebsocketMinJs,
-	"assets/ui.html": assetsUiHtml,
+	"assets/ui.html":                     assetsUiHtml,
 }
 
 // AssetDir returns the file names below a certain
@@ -293,6 +293,7 @@ type bintree struct {
 	Func     func() (*asset, error)
 	Children map[string]*bintree
 }
+
 var _bintree = &bintree{nil, map[string]*bintree{
 	"assets": &bintree{nil, map[string]*bintree{
 		".DS_Store": &bintree{assetsDs_store, map[string]*bintree{}},
@@ -356,7 +357,6 @@ func _filePath(dir, name string) string {
 	cannonicalName := strings.Replace(name, "\\", "/", -1)
 	return filepath.Join(append([]string{dir}, strings.Split(cannonicalName, "/")...)...)
 }
-
 
 func assetFS() *assetfs.AssetFS {
 	assetInfo := func(path string) (os.FileInfo, error) {
