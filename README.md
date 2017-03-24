@@ -132,7 +132,6 @@ Temperature values must be provided in °F or °C according to how the thermosta
 	"stage":2
 }
 ```
-Note: temperatures from the heatpump are in °F irrespective of thermostat setting
 
 #### GET /api/zone/1/vacation
 
