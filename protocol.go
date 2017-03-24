@@ -33,6 +33,7 @@ type InfinityProtocol struct {
 	actionCh                               chan *Action
 	snoops                                 []InfinityProtocolSnoop
 	reportDuration                         time.Duration
+	tempUnit                               uint8
 	readCount, readErrors, tableMismatches uint32
 }
 
@@ -261,6 +262,7 @@ func (p *InfinityProtocol) send(dst uint16, op uint8, requestData []byte, respon
 			p.readErrors++
 			return false
 		}
+		p.tempUnit = act.responseFrame.data[4]
 	}
 	return ok
 }
@@ -309,4 +311,12 @@ func (p *InfinityProtocol) sendFrame(buf []byte) bool {
 func (p *InfinityProtocol) snoopResponse(srcMin uint16, srcMax uint16, cb snoopCallback) {
 	s := InfinityProtocolSnoop{srcMin: srcMin, srcMax: srcMax, cb: cb}
 	p.snoops = append(p.snoops, s)
+}
+
+func (p *InfinityProtocol) tempUnitStr() string {
+	if p.tempUnit&0x1 == 0x1 {
+		return "C"
+	} else {
+		return "F"
+	}
 }
