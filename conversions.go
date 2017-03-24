@@ -69,10 +69,3 @@ func tempFtoC(tempF float32) float32 {
 	return (tempF-32.0)*5.0/9.0
 }
 
-func rawUnitToString(tempUnit uint8) string {
-	if tempUnit&0x1 == 0x1 {
-		return "C"
-	} else {
-		return "F"
-	}
-}

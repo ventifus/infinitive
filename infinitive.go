@@ -59,7 +59,7 @@ func getConfig() (*TStatZoneConfig, bool) {
 	*hold = cfg.ZoneHold&0x01 == 1
 
 	return &TStatZoneConfig{
-		TempUnit:        rawUnitToString(infinity.tempUnit),
+		TempUnit:        infinity.tempUnitStr(),
 		CurrentTemp:     params.Z1CurrentTemp,
 		CurrentHumidity: params.Z1CurrentHumidity,
 		OutdoorTemp:     params.OutdoorAirTemp,
@@ -110,7 +110,7 @@ func attachSnoops() {
 			if bytes.Equal(frame.data[0:3], []byte{0x00, 0x3e, 0x01}) {
 				heatPump.CoilTemp = float32(binary.BigEndian.Uint16(data[2:4])) / float32(16)
 				heatPump.OutsideTemp = float32(binary.BigEndian.Uint16(data[0:2])) / float32(16)
-				heatPump.TempUnit = rawUnitToString(infinity.tempUnit)
+				heatPump.TempUnit = infinity.tempUnitStr()
 				if heatPump.TempUnit == "C" {
 					// heat pump data on the bus always seems to be in Fahrenheit
 					heatPump.CoilTemp = tempFtoC(heatPump.CoilTemp)

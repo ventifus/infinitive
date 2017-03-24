@@ -312,3 +312,11 @@ func (p *InfinityProtocol) snoopResponse(srcMin uint16, srcMax uint16, cb snoopC
 	s := InfinityProtocolSnoop{srcMin: srcMin, srcMax: srcMax, cb: cb}
 	p.snoops = append(p.snoops, s)
 }
+
+func (p *InfinityProtocol) tempUnitStr() string {
+	if p.tempUnit&0x1 == 0x1 {
+		return "C"
+	} else {
+		return "F"
+	}
+}
