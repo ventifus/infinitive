@@ -140,7 +140,6 @@ Note: temperatures from the heatpump are in °F irrespective of thermostat setti
 {
    "active":false,
    "days":0,
-   "tempUnit":"F",
    "minTemperature":56,
    "maxTemperature":84,
    "minHumidity":15,

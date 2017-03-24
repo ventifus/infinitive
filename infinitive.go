@@ -58,7 +58,7 @@ func getConfig() (*TStatZoneConfig, bool) {
 	*hold = cfg.ZoneHold&0x01 == 1
 
 	return &TStatZoneConfig{
-		TempUnit:        rawUnitToString(params.TempUnit),
+		TempUnit:        rawUnitToString(infinity.tempUnit),
 		CurrentTemp:     params.Z1CurrentTemp,
 		CurrentHumidity: params.Z1CurrentHumidity,
 		OutdoorTemp:     params.OutdoorAirTemp,

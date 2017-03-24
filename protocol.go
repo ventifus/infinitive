@@ -33,6 +33,7 @@ type InfinityProtocol struct {
 	actionCh                               chan *Action
 	snoops                                 []InfinityProtocolSnoop
 	reportDuration                         time.Duration
+	tempUnit                               uint8
 	readCount, readErrors, tableMismatches uint32
 }
 
@@ -253,7 +254,7 @@ func (p *InfinityProtocol) send(dst uint16, op uint8, requestData []byte, respon
 			p.tableMismatches++
 			return false
 		}
-		r := bytes.NewReader(act.responseFrame.data[4:])
+		r := bytes.NewReader(act.responseFrame.data[6:])
 		err := binary.Read(r, binary.BigEndian, response)
 		if err != nil {
 			log.Printf("Read failed:", err)
@@ -261,6 +262,7 @@ func (p *InfinityProtocol) send(dst uint16, op uint8, requestData []byte, respon
 			p.readErrors++
 			return false
 		}
+		p.tempUnit = act.responseFrame.data[4]
 	}
 	return ok
 }

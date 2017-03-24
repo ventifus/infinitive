@@ -6,8 +6,6 @@ type InfinityTable interface {
 }
 
 type TStatCurrentParams struct {
-	TempUnit          uint8 // least sig bit codes unit, use of other bits is unknown
-	Unknown1          uint8
 	Z1CurrentTemp     uint8
 	Z2CurrentTemp     uint8
 	Z3CurrentTemp     uint8
@@ -37,8 +35,6 @@ func (params TStatCurrentParams) addr() InfinityTableAddr {
 }
 
 type TStatZoneParams struct {
-	TempUnit         uint8 // least sig bit codes unit, use of other bits is unknown
-	Unknown1         uint8
 	Z1FanMode        uint8
 	Z2FanMode        uint8
 	Z3FanMode        uint8
@@ -97,8 +93,6 @@ func (params TStatZoneParams) addr() InfinityTableAddr {
 }
 
 type TStatVacationParams struct {
-	TempUnit       uint8 // least sig bit codes unit, use of other bits is unknown
-	Unknown        uint8
 	Active         uint8
 	Hours          uint16
 	MinTemperature uint8
@@ -115,7 +109,6 @@ func (params TStatVacationParams) addr() InfinityTableAddr {
 type APIVacationConfig struct {
 	Active         *bool   `json:"active"`
 	Days           *uint8  `json:"days"`
-	TempUnit       *string `json:"tempUnit"`
 	MinTemperature *uint8  `json:"minTemperature"`
 	MaxTemperature *uint8  `json:"maxTemperature"`
 	MinHumidity    *uint8  `json:"minHumidity"`
@@ -137,9 +130,6 @@ func (params TStatVacationParams) toAPI() APIVacationConfig {
 
 	mode := rawFanModeToString(params.FanMode)
 	api.FanMode = &mode
-
-	unit := rawUnitToString(params.TempUnit)
-	api.TempUnit = &unit
 
 	return api
 }
