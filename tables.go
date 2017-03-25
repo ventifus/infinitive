@@ -92,6 +92,13 @@ func (params TStatZoneParams) addr() InfinityTableAddr {
 	return InfinityTableAddr{0x00, 0x3B, 0x03}
 }
 
+type FanCoilInfo struct {
+	Description    [24]byte
+	Unknown        [24]byte
+	Software        [16]byte
+	Model        	[20]byte
+}
+
 type TStatVacationParams struct {
 	Active         uint8
 	Hours          uint16

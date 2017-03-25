@@ -19,6 +19,7 @@ type TStatZoneConfig struct {
 	Stage           uint8  `json:"stage"`
 	FanMode         string `json:"fanMode"`
 	Hold            *bool  `json:"hold"`
+	HoldDuration    uint16 `json:"holdDurationMins"`	
 	HeatSetpoint    uint8  `json:"heatSetpoint"`
 	CoolSetpoint    uint8  `json:"coolSetpoint"`
 	RawMode         uint8  `json:"rawMode"`
@@ -64,6 +65,7 @@ func getConfig() (*TStatZoneConfig, bool) {
 		Stage:           params.Mode >> 5,
 		FanMode:         rawFanModeToString(cfg.Z1FanMode),
 		Hold:            hold,
+		HoldDuration:    params.Z1HoldDuration,
 		HeatSetpoint:    cfg.Z1HeatSetpoint,
 		CoolSetpoint:    cfg.Z1CoolSetpoint,
 		RawMode:         params.Mode,
@@ -100,6 +102,7 @@ func statePoller() {
 }
 
 func attachSnoops() {
+
 	// Snoop Heat Pump responses
 	infinity.snoopResponse(0x5000, 0x51ff, func(frame *InfinityFrame) {
 		data := frame.data[3:]
@@ -115,6 +118,10 @@ func attachSnoops() {
 				heatPump.Stage = data[0] >> 1
 				log.Debugf("HP stage is: %d", heatPump.Stage)
 				cache.update("heatpump", &heatPump)
+			} else if bytes.Equal(frame.data[0:3], []byte{0x00, 0x03, 0x08}) {
+				b := NewBuffer(data)
+				heatPumpModel := b.String()
+				log.Debugf("Heat Pump model: %s", heatPumpModel)
 			}
 		}
 	})
@@ -139,6 +146,10 @@ func attachSnoops() {
 				}
 				log.Debugf("air flow CFM is: %d", airHandler.AirFlowCFM)
 				cache.update("blower", &airHandler)
+			} else if bytes.Equal(frame.data[0:3], []byte{0x00, 0x01, 0x04}) {
+				b := NewBuffer(data)
+				airHandlerModel, err := b.String()
+				log.Debugf("Air Handler model: %s", airHandlerModel)			
 			}
 		}
 	})
