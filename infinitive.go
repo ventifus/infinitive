@@ -31,6 +31,7 @@ type AirHandler struct {
 	ElecHeat   uint8   `json:"elecHeat"`
 	FurnaceHeat   uint8   `json:"furnaceHeat"`
 	HeatBits   string   `json:"heatBits"`
+	ElecHeat   bool   `json:"elecHeat"`
 }
 
 type HeatPump struct {
