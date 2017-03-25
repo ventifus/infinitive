@@ -131,7 +131,6 @@ Values for `fanMode` are `auto`, `low`, `med`, and `high`.
 }
 ```
 
-
 #### GET /api/zone/1/vacation
 
 ```

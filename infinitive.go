@@ -12,6 +12,7 @@ import (
 )
 
 type TStatZoneConfig struct {
+	TempUnit        string `json:"tempUnit"`
 	CurrentTemp     uint8  `json:"currentTemp"`
 	CurrentHumidity uint8  `json:"currentHumidity"`
 	OutdoorTemp     uint8  `json:"outdoorTemp"`
@@ -35,6 +36,7 @@ type AirHandler struct {
 }
 
 type HeatPump struct {
+	TempUnit    string  `json:"tempUnit"`
 	CoilTemp    float32 `json:"coilTemp"`
 	OutsideTemp float32 `json:"outsideTemp"`
 	Stage       uint8   `json:"stage"`
@@ -48,17 +50,20 @@ func getConfig() (*TStatZoneConfig, bool) {
 	if !ok {
 		return nil, false
 	}
+	log.Debugf("good data obtained for TStatZoneParams")
 
 	params := TStatCurrentParams{}
 	ok = infinity.ReadTable(devTSTAT, &params)
 	if !ok {
 		return nil, false
 	}
+	log.Debugf("good data obtained for TStatCurrentParams")
 
 	hold := new(bool)
 	*hold = cfg.ZoneHold&0x01 == 1
 
 	return &TStatZoneConfig{
+		TempUnit:        infinity.tempUnitStr(),
 		CurrentTemp:     params.Z1CurrentTemp,
 		CurrentHumidity: params.Z1CurrentHumidity,
 		OutdoorTemp:     params.OutdoorAirTemp,
@@ -97,7 +102,6 @@ func statePoller() {
 		if ok {
 			cache.update("tstat", c)
 		}
-
 		time.Sleep(time.Second * 1)
 	}
 }
@@ -112,8 +116,14 @@ func attachSnoops() {
 			if bytes.Equal(frame.data[0:3], []byte{0x00, 0x3e, 0x01}) {
 				heatPump.CoilTemp = float32(binary.BigEndian.Uint16(data[2:4])) / float32(16)
 				heatPump.OutsideTemp = float32(binary.BigEndian.Uint16(data[0:2])) / float32(16)
-				log.Debugf("heat pump coil temp is: %f", heatPump.CoilTemp)
-				log.Debugf("heat pump outside temp is: %f", heatPump.OutsideTemp)
+				heatPump.TempUnit = infinity.tempUnitStr()
+				if heatPump.TempUnit == "C" {
+					// heat pump data on the bus always seems to be in Fahrenheit
+					heatPump.CoilTemp = tempFtoC(heatPump.CoilTemp)
+					heatPump.OutsideTemp = tempFtoC(heatPump.OutsideTemp)
+				}
+				log.Debugf("heat pump coil temp is: %f %s", heatPump.CoilTemp, heatPump.TempUnit)
+				log.Debugf("heat pump outside temp is: %f %s", heatPump.OutsideTemp, heatPump.TempUnit)
 				cache.update("heatpump", &heatPump)
 			} else if bytes.Equal(frame.data[0:3], []byte{0x00, 0x3e, 0x02}) {
 				heatPump.Stage = data[0] >> 1
@@ -171,7 +181,7 @@ func main() {
 
 	log.SetLevel(log.DebugLevel)
 
-	infinity = &InfinityProtocol{device: *serialPort}
+	infinity = &InfinityProtocol{device: *serialPort, reportDuration: time.Hour * 24}
 	airHandler := new(AirHandler)
 	heatPump := new(HeatPump)
 	cache.update("blower", airHandler)
