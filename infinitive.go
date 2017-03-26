@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -20,19 +21,18 @@ type TStatZoneConfig struct {
 	Stage           uint8  `json:"stage"`
 	FanMode         string `json:"fanMode"`
 	Hold            *bool  `json:"hold"`
-	HoldDuration    uint16 `json:"holdDurationMins"`	
+	HoldDuration    uint16 `json:"holdDurationMins"`
 	HeatSetpoint    uint8  `json:"heatSetpoint"`
 	CoolSetpoint    uint8  `json:"coolSetpoint"`
 	RawMode         uint8  `json:"rawMode"`
 }
 
 type AirHandler struct {
-	BlowerRPM  uint16 `json:"blowerRPM"`
-	AirFlowCFM uint16 `json:"airFlowCFM"`
-	ElecHeat   uint8   `json:"elecHeat"`
-	FurnaceHeat   uint8   `json:"furnaceHeat"`
-	HeatBits   string   `json:"heatBits"`
-	ElecHeat   bool   `json:"elecHeat"`
+	BlowerRPM   uint16 `json:"blowerRPM"`
+	AirFlowCFM  uint16 `json:"airFlowCFM"`
+	ElecHeat    bool   `json:"elecHeat"`
+	FurnaceHeat bool   `json:"furnaceHeat"`
+	HeatBits    string `json:"heatBits"`
 }
 
 type HeatPump struct {
@@ -40,6 +40,17 @@ type HeatPump struct {
 	CoilTemp    float32 `json:"coilTemp"`
 	OutsideTemp float32 `json:"outsideTemp"`
 	Stage       uint8   `json:"stage"`
+}
+
+type DeviceInfo struct {
+	Description string `json:"description"`
+	Product     string `json:"product"`
+	Software    string `json:"softwareVersion"`
+}
+
+type DeviceList struct {
+	AirHandler DeviceInfo `json:"airhandler"`
+	HeatPump   DeviceInfo `json:"heatpump"`
 }
 
 var infinity *InfinityProtocol
@@ -71,7 +82,7 @@ func getConfig() (*TStatZoneConfig, bool) {
 		Stage:           params.Mode >> 5,
 		FanMode:         rawFanModeToString(cfg.Z1FanMode),
 		Hold:            hold,
-		HoldDuration:    params.Z1HoldDuration,
+		HoldDuration:    cfg.Z1HoldDuration,
 		HeatSetpoint:    cfg.Z1HeatSetpoint,
 		CoolSetpoint:    cfg.Z1CoolSetpoint,
 		RawMode:         params.Mode,
@@ -94,6 +105,15 @@ func getHeatPump() (HeatPump, bool) {
 		return HeatPump{}, false
 	}
 	return *th, true
+}
+
+func getDevices() (DeviceList, bool) {
+	d := cache.get("devices")
+	td, ok := d.(*DeviceList)
+	if !ok {
+		return DeviceList{}, false
+	}
+	return *td, true
 }
 
 func statePoller() {
@@ -129,10 +149,21 @@ func attachSnoops() {
 				heatPump.Stage = data[0] >> 1
 				log.Debugf("HP stage is: %d", heatPump.Stage)
 				cache.update("heatpump", &heatPump)
-			} else if bytes.Equal(frame.data[0:3], []byte{0x00, 0x03, 0x08}) {
-				b := NewBuffer(data)
-				heatPumpModel := b.String()
-				log.Debugf("Heat Pump model: %s", heatPumpModel)
+			} else if bytes.Equal(frame.data[0:3], []byte{0x00, 0x3e, 0x08}) {
+				deviceList, ok := getDevices()
+				if ok {
+					b := bytes.NewBuffer(data)
+					deviceList.HeatPump.Product = b.String()
+					cache.update("devices", &deviceList)
+				}
+			} else if bytes.Equal(frame.data[0:3], []byte{0x00, 0x01, 0x04}) {
+				deviceList, ok := getDevices()
+				if ok {
+					deviceList.HeatPump.Description = devInfo(data[0:48])
+					deviceList.HeatPump.Software = devInfo(data[48:64])
+					deviceList.HeatPump.Product = devInfo(data[64:])
+					cache.update("devices", &deviceList)
+				}
 			}
 		}
 	})
@@ -150,21 +181,33 @@ func attachSnoops() {
 				airHandler.AirFlowCFM = binary.BigEndian.Uint16(data[4:8])
 				airHandler.HeatBits = fmt.Sprintf("%08b", data[0])
 				if frame.src >= 0x4200 && frame.src <= 0x42ff {
-					airHandler.ElecHeat = data[0]&0x03
+					airHandler.ElecHeat = data[0]&0x03 != 0
 				}
 				if frame.src >= 0x4000 && frame.src <= 0x41ff {
-					airHandler.FurnaceHeat = data[0]&0x03
+					airHandler.FurnaceHeat = data[0]&0x03 != 0
 				}
 				log.Debugf("air flow CFM is: %d", airHandler.AirFlowCFM)
 				cache.update("blower", &airHandler)
 			} else if bytes.Equal(frame.data[0:3], []byte{0x00, 0x01, 0x04}) {
-				b := NewBuffer(data)
-				airHandlerModel, err := b.String()
-				log.Debugf("Air Handler model: %s", airHandlerModel)			
+				deviceList, ok := getDevices()
+				if ok {
+					deviceList.AirHandler.Description = devInfo(data[0:48])
+					deviceList.AirHandler.Software = devInfo(data[48:64])
+					deviceList.AirHandler.Product = devInfo(data[64:])
+					cache.update("devices", &deviceList)
+				}
 			}
 		}
 	})
 
+}
+
+func devInfo(data []byte) string {
+	b := bytes.NewBuffer(data)
+	info, err := b.ReadString(0)
+	log.Printf("Error reading device info:", err)
+	log.Printf("Data was:%x", data)
+	return strings.TrimRight(info, " \x00")
 }
 
 func main() {
@@ -184,8 +227,10 @@ func main() {
 	infinity = &InfinityProtocol{device: *serialPort, reportDuration: time.Hour * 24}
 	airHandler := new(AirHandler)
 	heatPump := new(HeatPump)
+	devices := new(DeviceList)
 	cache.update("blower", airHandler)
 	cache.update("heatpump", heatPump)
+	cache.update("devices", devices)
 	attachSnoops()
 	err := infinity.Open()
 	if err != nil {

@@ -93,10 +93,10 @@ func (params TStatZoneParams) addr() InfinityTableAddr {
 }
 
 type FanCoilInfo struct {
-	Description    [24]byte
-	Unknown        [24]byte
-	Software        [16]byte
-	Model        	[20]byte
+	Description [24]byte
+	Unknown     [24]byte
+	Software    [16]byte
+	Model       [20]byte
 }
 
 type TStatVacationParams struct {
