@@ -43,6 +43,7 @@ type HeatPump struct {
 }
 
 type DeviceInfo struct {
+	BusId		string `json:"busId"`
 	Description string `json:"description"`
 	Product     string `json:"product"`
 	Software    string `json:"softwareVersion"`
@@ -50,7 +51,8 @@ type DeviceInfo struct {
 	//	SerialNo    string `json:"serialNo"`
 }
 
-func (dev *DeviceInfo) read104(data []byte) {
+func (dev *DeviceInfo) read104(src uint16, data []byte) {
+	dev.BusId = fmt.Sprintf("%4x", src)
 	dev.Description = devInfo(data[0:48])
 	dev.Software = devInfo(data[48:64])
 	dev.Product = devInfo(data[64:84])
@@ -80,14 +82,12 @@ func getConfig() (*TStatZoneConfig, bool) {
 	if !ok {
 		return nil, false
 	}
-	log.Debugf("good data obtained for TStatZoneParams")
 
 	params := TStatCurrentParams{}
 	ok = infinity.ReadTable(devTSTAT, &params)
 	if !ok {
 		return nil, false
 	}
-	log.Debugf("good data obtained for TStatCurrentParams")
 
 	hold := new(bool)
 	*hold = cfg.ZoneHold&0x01 == 1
@@ -173,12 +173,13 @@ func attachSnoops() {
 				if ok {
 					b := bytes.NewBuffer(data)
 					deviceList.HeatPump.Product = b.String()
+					deviceList.HeatPump.BusId = fmt.Sprintf("%4x", frame.src)
 					cache.update("devices", &deviceList)
 				}
 			} else if bytes.Equal(frame.data[0:3], []byte{0x00, 0x01, 0x04}) {
 				deviceList, ok := getDevices()
 				if ok {
-					deviceList.HeatPump.read104(data)
+					deviceList.HeatPump.read104(frame.src, frame.data)
 					cache.update("devices", &deviceList)
 				}
 			}
@@ -208,7 +209,7 @@ func attachSnoops() {
 			} else if bytes.Equal(frame.data[0:3], []byte{0x00, 0x01, 0x04}) {
 				deviceList, ok := getDevices()
 				if ok {
-					deviceList.AirHandler.read104(data)
+					deviceList.AirHandler.read104(frame.src, data)
 					cache.update("devices", &deviceList)
 				}
 			}
