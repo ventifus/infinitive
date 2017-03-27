@@ -46,6 +46,25 @@ type DeviceInfo struct {
 	Description string `json:"description"`
 	Product     string `json:"product"`
 	Software    string `json:"softwareVersion"`
+	//	Unknown     string `json:"unknown"`
+	//	SerialNo    string `json:"serialNo"`
+}
+
+func (dev *DeviceInfo) read104(data []byte) {
+	dev.Description = devInfo(data[0:48])
+	dev.Software = devInfo(data[48:64])
+	dev.Product = devInfo(data[64:84])
+	//  Leaving out potentially identifying information, for now at least
+	//	dev.Unknown = devInfo(data[84:96])
+	//	dev.SerialNo = devInfo(data[96:])
+}
+
+func devInfo(data []byte) string {
+	b := bytes.NewBuffer(data)
+	info, err := b.ReadString(0)
+	log.Printf("Error reading device info:", err)
+	log.Printf("Data was:%x", data)
+	return strings.TrimRight(info, " \x00")
 }
 
 type DeviceList struct {
@@ -159,9 +178,7 @@ func attachSnoops() {
 			} else if bytes.Equal(frame.data[0:3], []byte{0x00, 0x01, 0x04}) {
 				deviceList, ok := getDevices()
 				if ok {
-					deviceList.HeatPump.Description = devInfo(data[0:48])
-					deviceList.HeatPump.Software = devInfo(data[48:64])
-					deviceList.HeatPump.Product = devInfo(data[64:])
+					deviceList.HeatPump.read104(data)
 					cache.update("devices", &deviceList)
 				}
 			}
@@ -191,23 +208,13 @@ func attachSnoops() {
 			} else if bytes.Equal(frame.data[0:3], []byte{0x00, 0x01, 0x04}) {
 				deviceList, ok := getDevices()
 				if ok {
-					deviceList.AirHandler.Description = devInfo(data[0:48])
-					deviceList.AirHandler.Software = devInfo(data[48:64])
-					deviceList.AirHandler.Product = devInfo(data[64:])
+					deviceList.AirHandler.read104(data)
 					cache.update("devices", &deviceList)
 				}
 			}
 		}
 	})
 
-}
-
-func devInfo(data []byte) string {
-	b := bytes.NewBuffer(data)
-	info, err := b.ReadString(0)
-	log.Printf("Error reading device info:", err)
-	log.Printf("Data was:%x", data)
-	return strings.TrimRight(info, " \x00")
 }
 
 func main() {
