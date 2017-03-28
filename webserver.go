@@ -50,8 +50,13 @@ func webserver(port int) {
 	api.GET("/zone/1/devices", func(c *gin.Context) {
 		dv, ok := getDevices()
 		if ok {
-			c.JSON(200, dv)
+			ts, ok := getTStatInfo()
+			if ok {
+				dv.Thermostat = *ts
+				c.JSON(200, dv)
+			}
 		}
+
 	})
 
 	api.GET("/zone/1/vacation", func(c *gin.Context) {

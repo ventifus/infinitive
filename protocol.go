@@ -261,7 +261,11 @@ func (p *InfinityProtocol) send(dst uint16, op uint8, requestData []byte, respon
 			p.tableMismatches++
 			return false
 		}
-		r := bytes.NewReader(act.responseFrame.data[6:])
+		dataStart := 6
+		if bytes.Equal(requestData, []byte{0x00, 0x01, 0x04}) {
+			dataStart = 3
+		}
+		r := bytes.NewReader(act.responseFrame.data[dataStart:])
 		err := binary.Read(r, binary.BigEndian, response)
 		if err != nil {
 			log.Printf("Read failed:", err)

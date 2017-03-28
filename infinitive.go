@@ -43,7 +43,7 @@ type HeatPump struct {
 }
 
 type DeviceInfo struct {
-	BusId		string `json:"busId"`
+	BusId       string `json:"busId"`
 	Description string `json:"description"`
 	Product     string `json:"product"`
 	Software    string `json:"softwareVersion"`
@@ -70,6 +70,7 @@ func devInfo(data []byte) string {
 }
 
 type DeviceList struct {
+	Thermostat DeviceInfo `json:"thermostat"`
 	AirHandler DeviceInfo `json:"airhandler"`
 	HeatPump   DeviceInfo `json:"heatpump"`
 }
@@ -105,6 +106,21 @@ func getConfig() (*TStatZoneConfig, bool) {
 		HeatSetpoint:    cfg.Z1HeatSetpoint,
 		CoolSetpoint:    cfg.Z1CoolSetpoint,
 		RawMode:         params.Mode,
+	}, true
+}
+
+func getTStatInfo() (*DeviceInfo, bool) {
+	params := DevInfoParams{}
+	ok := infinity.ReadTable(devTSTAT, &params)
+	if !ok {
+		return nil, false
+	}
+
+	return &DeviceInfo{
+		BusId:       fmt.Sprintf("%4x", devTSTAT),
+		Description: devInfo(params.Description[0:]),
+		Software:    devInfo(params.Software[0:]),
+		Product:     devInfo(params.Product[0:]),
 	}, true
 }
 
@@ -179,7 +195,7 @@ func attachSnoops() {
 			} else if bytes.Equal(frame.data[0:3], []byte{0x00, 0x01, 0x04}) {
 				deviceList, ok := getDevices()
 				if ok {
-					deviceList.HeatPump.read104(frame.src, frame.data)
+					deviceList.HeatPump.read104(frame.src, data)
 					cache.update("devices", &deviceList)
 				}
 			}
