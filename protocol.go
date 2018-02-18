@@ -12,6 +12,7 @@ import (
 
 const (
 	devTSTAT = uint16(0x2001)
+	devHeatPump = uint16(0x5001)
 	devSAM   = uint16(0x9201)
 )
 
@@ -273,7 +274,9 @@ func (p *InfinityProtocol) send(dst uint16, op uint8, requestData []byte, respon
 			p.readErrors++
 			return false
 		}
-		p.tempUnit = act.responseFrame.data[4]
+		if bytes.Equal(resTable, []byte{0x00, 0x3B, 0x02}) {
+			p.tempUnit = act.responseFrame.data[4]
+		}
 	}
 	return ok
 }

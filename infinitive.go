@@ -24,15 +24,32 @@ type TStatZoneConfig struct {
 	HoldDuration    uint16 `json:"holdDurationMins"`
 	HeatSetpoint    uint8  `json:"heatSetpoint"`
 	CoolSetpoint    uint8  `json:"coolSetpoint"`
+	TargetHum   	uint8  `json:"targetHumidity"`
 	RawMode         uint8  `json:"rawMode"`
 }
 
-type AirHandler struct {
+type AirHandlerBase struct {
 	BlowerRPM   uint16 `json:"blowerRPM"`
 	AirFlowCFM  uint16 `json:"airFlowCFM"`
-	ElecHeat    bool   `json:"elecHeat"`
-	FurnaceHeat bool   `json:"furnaceHeat"`
 	HeatBits    string `json:"heatBits"`
+}
+
+type AirHandler struct {
+	AirHandlerBase
+	ElecHeat    bool   `json:"elecHeat"`
+}
+
+func (f *AirHandler) setAuxHeat (heat bool) {
+	f.ElecHeat = heat
+}
+
+type Furnace struct {
+	AirHandlerBase
+	FurnaceHeat    bool   `json:"furnaceHeat"`
+}
+
+func (f *Furnace) setAuxHeat (heat bool) {
+	f.FurnaceHeat = heat
 }
 
 type HeatPump struct {
@@ -43,12 +60,12 @@ type HeatPump struct {
 }
 
 type DeviceInfo struct {
-	BusId       string `json:"busId"`
 	Description string `json:"description"`
 	Product     string `json:"product"`
 	Software    string `json:"softwareVersion"`
 	//	Unknown     string `json:"unknown"`
 	//	SerialNo    string `json:"serialNo"`
+	BusId       string `json:"busId"`
 }
 
 func (dev *DeviceInfo) read104(src uint16, data []byte) {
@@ -64,8 +81,10 @@ func (dev *DeviceInfo) read104(src uint16, data []byte) {
 func devInfo(data []byte) string {
 	b := bytes.NewBuffer(data)
 	info, err := b.ReadString(0)
-	log.Printf("Error reading device info:", err)
-	log.Printf("Data was:%x", data)
+	if err != nil {
+		log.Printf("Error reading device info|%s|", err.Error())
+		log.Printf("Data was:%x", data)
+	}
 	return strings.TrimRight(info, " \x00")
 }
 
@@ -105,19 +124,20 @@ func getConfig() (*TStatZoneConfig, bool) {
 		HoldDuration:    cfg.Z1HoldDuration,
 		HeatSetpoint:    cfg.Z1HeatSetpoint,
 		CoolSetpoint:    cfg.Z1CoolSetpoint,
+		TargetHum:     	 cfg.Z1TargetHumidity,
 		RawMode:         params.Mode,
 	}, true
 }
 
-func getTStatInfo() (*DeviceInfo, bool) {
+func getDeviceInfo(address uint16) (*DeviceInfo, bool) {
 	params := DevInfoParams{}
-	ok := infinity.ReadTable(devTSTAT, &params)
+	ok := infinity.ReadTable(address, &params)
 	if !ok {
 		return nil, false
 	}
 
 	return &DeviceInfo{
-		BusId:       fmt.Sprintf("%4x", devTSTAT),
+		BusId:       fmt.Sprintf("%4x", address),
 		Description: devInfo(params.Description[0:]),
 		Software:    devInfo(params.Software[0:]),
 		Product:     devInfo(params.Product[0:]),
@@ -214,12 +234,7 @@ func attachSnoops() {
 			} else if bytes.Equal(frame.data[0:3], []byte{0x00, 0x03, 0x16}) {
 				airHandler.AirFlowCFM = binary.BigEndian.Uint16(data[4:8])
 				airHandler.HeatBits = fmt.Sprintf("%08b", data[0])
-				if frame.src >= 0x4200 && frame.src <= 0x42ff {
-					airHandler.ElecHeat = data[0]&0x03 != 0
-				}
-				if frame.src >= 0x4000 && frame.src <= 0x41ff {
-					airHandler.FurnaceHeat = data[0]&0x03 != 0
-				}
+				airHandler.setAuxHeat(data[0]&0x03 != 0)
 				log.Debugf("air flow CFM is: %d", airHandler.AirFlowCFM)
 				cache.update("blower", &airHandler)
 			} else if bytes.Equal(frame.data[0:3], []byte{0x00, 0x01, 0x04}) {

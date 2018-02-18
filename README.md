@@ -81,6 +81,7 @@ Infinitive exposes a JSON API to retrieve and manipulate thermostat parameters.
 
 ```json
 {
+   "tempUnit":"F",
    "currentTemp": 70,
    "currentHumidity": 50,
    "outdoorTemp": 50,
@@ -88,8 +89,10 @@ Infinitive exposes a JSON API to retrieve and manipulate thermostat parameters.
    "stage":2,
    "fanMode": "auto",
    "hold": true,
+   "holdDurationMins":0,
    "heatSetpoint": 68,
    "coolSetpoint": 74,
+   "targetHumidity":45,
    "rawMode": 64
 }
 ```
@@ -117,6 +120,7 @@ Values for `fanMode` are `auto`, `low`, `med`, and `high`.
 {
 	"blowerRPM":0,
 	"airFlowCFM":0,
+	"heatBits":"00000000",
 	"elecHeat":false
 }
 ```
@@ -125,6 +129,7 @@ Values for `fanMode` are `auto`, `low`, `med`, and `high`.
 
 ```json
 {
+	"tempUnit":"F",
 	"coilTemp":28.8125,
 	"outsideTemp":31.375,
 	"stage":2
@@ -155,6 +160,29 @@ Values for `fanMode` are `auto`, `low`, `med`, and `high`.
    "minHumidity":15,
    "maxHumidity":60,
    "fanMode":"auto"
+}
+```
+
+#### GET /api/devices
+```{
+    "thermostat": {
+        "description": "",
+        "product": "SYSTXCCUID01-V",
+        "softwareVersion": "CESR131507-01",
+        "busId": "2001"
+    },
+    "airhandler": {
+        "description": "VARIABLE SPEED FAN COIL",
+        "product": "FE4ANF002T00ABAA",
+        "softwareVersion": "CESR131321-13",
+        "busId": "4201"
+    },
+    "heatpump": {
+        "description": "EVEREST TWO CAPACITY ODU",
+        "product": "25HNB624A0030030",
+        "softwareVersion": "CESR131391-07",
+        "busId": "5001"
+    }
 }
 ```
 

@@ -10,7 +10,7 @@ func rawModeToString(mode uint8) string {
 		return "auto"
 	case 3:
 		return "electric" // electric heat only - fan coil system
-		// on a furnace system perhaps this is furnace only - untested
+		// on a furnace system perhaps mode 3 is furnace only - untested
 	case 4:
 		return "heatpump" // heat pump only
 	case 5:

@@ -26,6 +26,19 @@ func webserver(port int) {
 	r.Use(handleErrors) // attach error handling middleware
 
 	api := r.Group("/api")
+	
+	r.GET("/moreJSON", func(c *gin.Context) {
+		ah, ok := getAirHandler()
+		if ok {
+			fName := "furnaceHeat"		
+			c.JSON(http.StatusOK, gin.H{"heatBits": ah.HeatBits,
+										 "blowerRPM": ah.BlowerRPM,
+										 "airFlowCFM": ah.AirFlowCFM,
+										 fName: ah.ElecHeat,
+			})
+		}
+	})
+		
 	api.GET("/zone/1/config", func(c *gin.Context) {
 		cfg, ok := getConfig()
 		if ok {
@@ -33,27 +46,40 @@ func webserver(port int) {
 		}
 	})
 
-	api.GET("/zone/1/airhandler", func(c *gin.Context) {
+	api.GET("/airhandler", func(c *gin.Context) {
 		ah, ok := getAirHandler()
 		if ok {
 			c.JSON(200, ah)
 		}
 	})
 
-	api.GET("/zone/1/heatpump", func(c *gin.Context) {
+	api.GET("/airhandler2", func(c *gin.Context) {
+		ah, ok := getAirHandler()
+		if ok {
+			c.JSON(200, ah)
+		}
+	})
+
+	api.GET("/heatpump", func(c *gin.Context) {
 		hp, ok := getHeatPump()
 		if ok {
 			c.JSON(200, hp)
 		}
 	})
 
-	api.GET("/zone/1/devices", func(c *gin.Context) {
+	api.GET("/devices", func(c *gin.Context) {
 		dv, ok := getDevices()
 		if ok {
-			ts, ok := getTStatInfo()
+			ts, ok := getDeviceInfo(devTSTAT)
 			if ok {
 				dv.Thermostat = *ts
-				c.JSON(200, dv)
+			} else {
+				return
+			}
+			hp, ok := getDeviceInfo(devHeatPump)
+			if ok {
+				dv.HeatPump = *hp
+				c.IndentedJSON(200, dv)
 			}
 		}
 
