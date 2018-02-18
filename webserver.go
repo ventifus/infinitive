@@ -119,6 +119,11 @@ func webserver(port int) {
 				flags |= 0x02
 			}
 
+// 			if args.HoldDuration > 0 {
+// 				params.Z1HoldDuration = args.HoldDuration
+// 				flags |= 0x04 # not sure how to determine the correct value to indicate this has changed
+// 			}
+
 			if args.HeatSetpoint > 0 {
 				params.Z1HeatSetpoint = args.HeatSetpoint
 				flags |= 0x04
