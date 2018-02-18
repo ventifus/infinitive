@@ -11,14 +11,19 @@ import (
 )
 
 const (
-	devTSTAT = uint16(0x2001)
-	devSAM   = uint16(0x9201)
+	devTSTAT    = uint16(0x2001)
+	devHeatPump = uint16(0x5001)
+	devSAM      = uint16(0x9201)
 )
 
 const responseTimeout = 200
 const responseRetries = 5
 
 type snoopCallback func(*InfinityFrame)
+
+type InfinityProtocolRawRequest struct {
+	data *[]byte
+}
 
 type InfinityProtocolSnoop struct {
 	srcMin uint16
@@ -41,7 +46,6 @@ type Action struct {
 	requestFrame  *InfinityFrame
 	responseFrame *InfinityFrame
 	ok            bool
-	responseData  interface{}
 	ch            chan bool
 }
 
@@ -111,7 +115,7 @@ func (p *InfinityProtocol) handleFrame(frame *InfinityFrame) *InfinityFrame {
 
 	switch frame.op {
 	case opRESPONSE:
-		if frame.src == devTSTAT && frame.dst == devSAM {
+		if frame.dst == devSAM {
 			p.responseCh <- frame
 		}
 
@@ -207,6 +211,10 @@ func (p *InfinityProtocol) performAction(action *Action) {
 	for tries := 0; tries < responseRetries; {
 		select {
 		case res := <-p.responseCh:
+			if res.src != action.requestFrame.dst {
+				continue
+			}
+
 			reqTable := action.requestFrame.data[0:3]
 			resTable := res.data[0:3]
 
@@ -254,15 +262,21 @@ func (p *InfinityProtocol) send(dst uint16, op uint8, requestData []byte, respon
 			p.tableMismatches++
 			return false
 		}
-		r := bytes.NewReader(act.responseFrame.data[6:])
+		dataStart := 6
+		if bytes.Equal(requestData, []byte{0x00, 0x01, 0x04}) {
+			dataStart = 3
+		}
+		r := bytes.NewReader(act.responseFrame.data[dataStart:])
 		err := binary.Read(r, binary.BigEndian, response)
 		if err != nil {
 			log.Printf("Read failed:", err)
-		    log.Printf("Data was %v :%x", reflect.TypeOf(response), act.responseFrame.data)
+			log.Printf("Data was %v :%x", reflect.TypeOf(response), act.responseFrame.data)
 			p.readErrors++
 			return false
 		}
-		p.tempUnit = act.responseFrame.data[4]
+		if bytes.Equal(resTable, []byte{0x00, 0x3B, 0x02}) {
+			p.tempUnit = act.responseFrame.data[4]
+		}
 	}
 	return ok
 }

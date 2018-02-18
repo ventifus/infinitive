@@ -1,7 +1,10 @@
 package main
 
 import (
+	"encoding/hex"
+	"errors"
 	"net/http"
+	"regexp"
 	"strconv"
 
 	"golang.org/x/net/websocket"
@@ -10,10 +13,20 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+func handleErrors(c *gin.Context) {
+	c.Next()
+
+	if len(c.Errors) > 0 {
+		c.JSON(-1, c.Errors) // -1 == not override the current error code
+	}
+}
+
 func webserver(port int) {
 	r := gin.Default()
+	r.Use(handleErrors) // attach error handling middleware
 
 	api := r.Group("/api")
+
 	api.GET("/zone/1/config", func(c *gin.Context) {
 		cfg, ok := getConfig()
 		if ok {
@@ -21,18 +34,43 @@ func webserver(port int) {
 		}
 	})
 
-	api.GET("/zone/1/airhandler", func(c *gin.Context) {
+	api.GET("/airhandler", func(c *gin.Context) {
 		ah, ok := getAirHandler()
 		if ok {
 			c.JSON(200, ah)
 		}
 	})
 
-	api.GET("/zone/1/heatpump", func(c *gin.Context) {
+	api.GET("/airhandler2", func(c *gin.Context) {
+		ah, ok := getAirHandler()
+		if ok {
+			c.JSON(200, ah)
+		}
+	})
+
+	api.GET("/heatpump", func(c *gin.Context) {
 		hp, ok := getHeatPump()
 		if ok {
 			c.JSON(200, hp)
 		}
+	})
+
+	api.GET("/devices", func(c *gin.Context) {
+		dv, ok := getDevices()
+		if ok {
+			ts, ok := getDeviceInfo(devTSTAT)
+			if ok {
+				dv.Thermostat = *ts
+			} else {
+				return
+			}
+			hp, ok := getDeviceInfo(devHeatPump)
+			if ok {
+				dv.HeatPump = *hp
+				c.IndentedJSON(200, dv)
+			}
+		}
+
 	})
 
 	api.GET("/zone/1/vacation", func(c *gin.Context) {
@@ -102,6 +140,33 @@ func webserver(port int) {
 			}
 		} else {
 			log.Printf("bind failed")
+		}
+	})
+
+	api.GET("/raw/:device/:table", func(c *gin.Context) {
+		matched, _ := regexp.MatchString("^[a-f0-9]{4}$", c.Param("device"))
+		if !matched {
+			c.AbortWithError(400, errors.New("name must be a 4 character hex string"))
+			return
+		}
+		matched, _ = regexp.MatchString("^[a-f0-9]{6}$", c.Param("table"))
+		if !matched {
+			c.AbortWithError(400, errors.New("table must be a 6 character hex string"))
+			return
+		}
+
+		d, _ := strconv.ParseUint(c.Param("device"), 16, 16)
+		a, _ := hex.DecodeString(c.Param("table"))
+		var addr InfinityTableAddr
+		copy(addr[:], a[0:3])
+		raw := InfinityProtocolRawRequest{&[]byte{}}
+
+		success := infinity.Read(uint16(d), addr, raw)
+
+		if success {
+			c.JSON(200, gin.H{"response": hex.EncodeToString(*raw.data)})
+		} else {
+			c.AbortWithError(504, errors.New("timed out waiting for response"))
 		}
 	})
 
