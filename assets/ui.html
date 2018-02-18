@@ -75,7 +75,7 @@
            </div>
 
 <div class="col-xs-4">
-<h5>Hold</h5>
+<h5>Hold<span ng-hide="blower.holdDurationMins == 0">{{ tstat.holdDurationMins }} min</span>)</h5>
              <div class="btn-group" role="group">
                <a role="button" class="btn btn-default btm-sm" ng-disabled="!tstat.hold" ng-click="setHold(false)">Off</a>
                <a role="button" class="btn btn-default btm-sm" ng-disabled="tstat.hold" ng-click="setHold(true)">On</a>
