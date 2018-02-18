@@ -121,7 +121,7 @@ Values for `fanMode` are `auto`, `low`, `med`, and `high`.
 	"blowerRPM":0,
 	"airFlowCFM":0,
 	"heatBits":"00000000",
-	"elecHeat":false
+	"auxHeat":false
 }
 ```
 

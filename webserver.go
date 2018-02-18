@@ -26,19 +26,7 @@ func webserver(port int) {
 	r.Use(handleErrors) // attach error handling middleware
 
 	api := r.Group("/api")
-	
-	r.GET("/moreJSON", func(c *gin.Context) {
-		ah, ok := getAirHandler()
-		if ok {
-			fName := "furnaceHeat"		
-			c.JSON(http.StatusOK, gin.H{"heatBits": ah.HeatBits,
-										 "blowerRPM": ah.BlowerRPM,
-										 "airFlowCFM": ah.AirFlowCFM,
-										 fName: ah.ElecHeat,
-			})
-		}
-	})
-		
+
 	api.GET("/zone/1/config", func(c *gin.Context) {
 		cfg, ok := getConfig()
 		if ok {

@@ -24,32 +24,15 @@ type TStatZoneConfig struct {
 	HoldDuration    uint16 `json:"holdDurationMins"`
 	HeatSetpoint    uint8  `json:"heatSetpoint"`
 	CoolSetpoint    uint8  `json:"coolSetpoint"`
-	TargetHum   	uint8  `json:"targetHumidity"`
+	TargetHum       uint8  `json:"targetHumidity"`
 	RawMode         uint8  `json:"rawMode"`
 }
 
-type AirHandlerBase struct {
-	BlowerRPM   uint16 `json:"blowerRPM"`
-	AirFlowCFM  uint16 `json:"airFlowCFM"`
-	HeatBits    string `json:"heatBits"`
-}
-
 type AirHandler struct {
-	AirHandlerBase
-	ElecHeat    bool   `json:"elecHeat"`
-}
-
-func (f *AirHandler) setAuxHeat (heat bool) {
-	f.ElecHeat = heat
-}
-
-type Furnace struct {
-	AirHandlerBase
-	FurnaceHeat    bool   `json:"furnaceHeat"`
-}
-
-func (f *Furnace) setAuxHeat (heat bool) {
-	f.FurnaceHeat = heat
+	BlowerRPM  uint16 `json:"blowerRPM"`
+	AirFlowCFM uint16 `json:"airFlowCFM"`
+	HeatBits   string `json:"heatBits"`
+	AuxHeat    bool   `json:"auxHeat"`
 }
 
 type HeatPump struct {
@@ -65,7 +48,7 @@ type DeviceInfo struct {
 	Software    string `json:"softwareVersion"`
 	//	Unknown     string `json:"unknown"`
 	//	SerialNo    string `json:"serialNo"`
-	BusId       string `json:"busId"`
+	BusId string `json:"busId"`
 }
 
 func (dev *DeviceInfo) read104(src uint16, data []byte) {
@@ -124,7 +107,7 @@ func getConfig() (*TStatZoneConfig, bool) {
 		HoldDuration:    cfg.Z1HoldDuration,
 		HeatSetpoint:    cfg.Z1HeatSetpoint,
 		CoolSetpoint:    cfg.Z1CoolSetpoint,
-		TargetHum:     	 cfg.Z1TargetHumidity,
+		TargetHum:       cfg.Z1TargetHumidity,
 		RawMode:         params.Mode,
 	}, true
 }
@@ -234,7 +217,7 @@ func attachSnoops() {
 			} else if bytes.Equal(frame.data[0:3], []byte{0x00, 0x03, 0x16}) {
 				airHandler.AirFlowCFM = binary.BigEndian.Uint16(data[4:8])
 				airHandler.HeatBits = fmt.Sprintf("%08b", data[0])
-				airHandler.setAuxHeat(data[0]&0x03 != 0)
+				airHandler.AuxHeat = (data[0]&0x03 != 0)
 				log.Debugf("air flow CFM is: %d", airHandler.AirFlowCFM)
 				cache.update("blower", &airHandler)
 			} else if bytes.Equal(frame.data[0:3], []byte{0x00, 0x01, 0x04}) {
