@@ -163,6 +163,8 @@ Values for `fanMode` are `auto`, `low`, `med`, and `high`.
 }
 ```
 
+All parameters are optional.  A single parameter may be updated by sending a JSON document containing only that parameter.  Vacation mode is disabled by setting `days` to `0`.  Valid values for `fanMode` are `auto`, `low`, `med`, and `high`.
+
 #### GET /api/devices
 ```{
     "thermostat": {
@@ -185,8 +187,6 @@ Values for `fanMode` are `auto`, `low`, `med`, and `high`.
     }
 }
 ```
-
-All parameters are optional.  A single parameter may be updated by sending a JSON document containing only that parameter.  Vacation mode is disabled by setting `days` to `0`.  Valid values for `fanMode` are `auto`, `low`, `med`, and `high`.
 
 ## Details
 #### ABCD bus
