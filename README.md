@@ -114,7 +114,7 @@ Valid write values for `mode` are `off`, `auto`, `heat`, and `cool`.
 Additional read values for mode are `electric` and `heatpump` indicating "heat pump only" or "electric heat only" have been selected at the thermostat 
 Values for `fanMode` are `auto`, `low`, `med`, and `high`.
 
-#### GET /api/zone/1/airhandler
+#### GET /api/airhandler
 
 ```json
 {
@@ -125,7 +125,7 @@ Values for `fanMode` are `auto`, `low`, `med`, and `high`.
 }
 ```
 
-#### GET /api/zone/1/heatpump
+#### GET /api/heatpump
 
 ```json
 {
