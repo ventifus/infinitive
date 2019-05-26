@@ -9,7 +9,10 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 type TStatZoneConfig struct {
@@ -112,6 +115,39 @@ func getConfig() (*TStatZoneConfig, bool) {
 	}, true
 }
 
+type zoneConfigCollector struct {
+	currentTemp *prometheus.Desc
+	currentHumidity *prometheus.Desc
+	outdoorTemp *prometheus.Desc
+	stage *prometheus.Desc
+}
+
+func newZoneConfigCollector() *zoneConfigCollector {
+	return &zoneConfigCollector {
+		currentTemp: prometheus.NewDesc("infinitive_inside_temp", "Current temperature", nil, nil),
+		currentHumidity: prometheus.NewDesc("infinitive_inside_humidity", "Current humidity", nil, nil),
+		outdoorTemp: prometheus.NewDesc("infinitive_outside_temp", "Outside temperature", nil, nil),
+		stage: prometheus.NewDesc("infinitive_stage", "Stage", nil, nil),
+	}
+}
+
+func (collector *zoneConfigCollector) Describe(ch chan<- *prometheus.Desc) {
+	ch <- collector.currentTemp
+	ch <- collector.currentHumidity
+	ch <- collector.outdoorTemp
+	ch <- collector.stage
+}
+
+func (collector *zoneConfigCollector) Collect(ch chan<- prometheus.Metric) {
+	c, ok := getConfig()
+	if ok {
+		ch <- prometheus.MustNewConstMetric(collector.currentTemp, prometheus.GaugeValue, float64(c.CurrentTemp))
+		ch <- prometheus.MustNewConstMetric(collector.currentHumidity, prometheus.GaugeValue, float64(c.CurrentHumidity))
+		ch <- prometheus.MustNewConstMetric(collector.outdoorTemp, prometheus.GaugeValue, float64(c.OutdoorTemp))
+		ch <- prometheus.MustNewConstMetric(collector.stage, prometheus.GaugeValue, float64(c.Stage))
+	}
+}
+
 func getDeviceInfo(address uint16) (*DeviceInfo, bool) {
 	params := DevInfoParams{}
 	ok := infinity.ReadTable(address, &params)
@@ -164,10 +200,21 @@ func statePoller() {
 	}
 }
 
+var (
+	snoopCalls = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "infinitive_snoop_calls_total",
+			Help: "The total number of snooped calls.",
+		}, 
+	[]string{"name"},
+	)
+)
+
 func attachSnoops() {
 
 	// Snoop Heat Pump responses
 	infinity.snoopResponse(0x5000, 0x51ff, func(frame *InfinityFrame) {
+		snoopCalls.With(prometheus.Labels{"name":"heatpump"}).Inc()
 		data := frame.data[3:]
 		heatPump, ok := getHeatPump()
 		if ok {
@@ -207,6 +254,7 @@ func attachSnoops() {
 
 	// Snoop Air Handler responses
 	infinity.snoopResponse(0x4000, 0x42ff, func(frame *InfinityFrame) {
+		snoopCalls.With(prometheus.Labels{"name":"blower"}).Inc()
 		data := frame.data[3:]
 		airHandler, ok := getAirHandler()
 		if ok {
@@ -245,6 +293,9 @@ func main() {
 	}
 
 	log.SetLevel(log.DebugLevel)
+
+	zonecoll := newZoneConfigCollector()
+	prometheus.MustRegister(zonecoll)
 
 	infinity = &InfinityProtocol{device: *serialPort, reportDuration: time.Hour * 24}
 	airHandler := new(AirHandler)

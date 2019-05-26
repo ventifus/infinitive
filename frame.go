@@ -6,6 +6,19 @@ import (
 	"fmt"
 
 	"github.com/npat-efault/crc16"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+)
+
+var (
+	frameCount = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "infinitive_frame_decode_total",
+			Help: "The total number of decoded frame.",
+		}, 
+	[]string{"name"},
+	)
 )
 
 const (
@@ -49,14 +62,19 @@ func (f *InfinityFrame) String() string {
 func (f *InfinityFrame) opString() string {
 	switch f.op {
 	case opRESPONSE:
+		frameCount.With(prometheus.Labels{"name":"response"}).Inc()
 		return "RESPONSE"
 	case opREAD:
+		frameCount.With(prometheus.Labels{"name":"read"}).Inc()
 		return "READ"
 	case opWRITE:
+		frameCount.With(prometheus.Labels{"name":"write"}).Inc()
 		return "WRITE"
 	case opERROR:
+		frameCount.With(prometheus.Labels{"name":"error"}).Inc()
 		return "ERROR"
 	default:
+		frameCount.With(prometheus.Labels{"name":"unknown"}).Inc()
 		return fmt.Sprintf("UNKNOWN(%x)", f.op)
 	}
 }

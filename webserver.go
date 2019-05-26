@@ -9,8 +9,10 @@ import (
 
 	"golang.org/x/net/websocket"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/gin-gonic/gin"
+
+	"github.com/zsais/go-gin-prometheus"
 )
 
 func handleErrors(c *gin.Context) {
@@ -24,6 +26,9 @@ func handleErrors(c *gin.Context) {
 func webserver(port int) {
 	r := gin.Default()
 	r.Use(handleErrors) // attach error handling middleware
+
+	p := ginprometheus.NewPrometheus("gin")
+	p.Use(r)
 
 	api := r.Group("/api")
 

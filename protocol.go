@@ -5,9 +5,13 @@ import (
 	"encoding/binary"
 	"reflect"
 	"time"
+	"fmt"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/tarm/serial"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 const (
@@ -18,6 +22,46 @@ const (
 
 const responseTimeout = 200
 const responseRetries = 5
+
+var (
+	brokerUnexpectedResponse = promauto.NewCounter(
+		prometheus.CounterOpts{
+			Name: "infinitive_broker_response_unexpected_total",
+			Help: "The total number of unexpected responses.",
+		})
+	protocolReadErrors = promauto.NewCounter(
+		prometheus.CounterOpts{
+			Name: "infinitive_protocol_read_errors_total",
+			Help: "Protocol read errors.",
+		})
+	protocolTimeouts = promauto.NewCounter(
+		prometheus.CounterOpts{
+			Name: "infinitive_protocol_timeouts_total",
+			Help: "Protocol timeouts.",
+		})
+	deviceReopens = promauto.NewCounter(
+		prometheus.CounterOpts{
+			Name: "infinitive_device_reopens_total",
+			Help: "Device close and reopen.",
+		})
+	tableWrites = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "infinitive_table_writes",
+			Help: "Writes to table",
+		},
+		[]string {"table"})
+	tableReads = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "infinitive_table_reads_total",
+			Help: "Reads from table",
+		},
+		[]string {"table"})
+	messagesSent = promauto.NewCounter(
+		prometheus.CounterOpts{
+			Name: "infinitive_send_total",
+			Help: "Messages sent",
+		})
+)
 
 type snoopCallback func(*InfinityFrame)
 
@@ -151,6 +195,7 @@ func (p *InfinityProtocol) reader() {
 		if n == 0 || err != nil {
 			log.Printf("error reading from serial port: %s", err.Error())
 			if p.port != nil {
+				deviceReopens.Inc()
 				p.port.Close()
 			}
 			p.port = nil
@@ -196,6 +241,7 @@ func (p *InfinityProtocol) broker() {
 		case action := <-p.actionCh:
 			p.performAction(action)
 		case <-p.responseCh:
+			brokerUnexpectedResponse.Inc()
 			log.Warn("dropping unexpected response")
 		}
 	}
@@ -230,6 +276,7 @@ func (p *InfinityProtocol) performAction(action *Action) {
 			return
 		case <-ticker.C:
 			log.Debug("timeout waiting for response, retransmitting frame")
+			protocolTimeouts.Inc()
 			p.sendFrame(encodedFrame)
 			tries++
 		}
@@ -240,6 +287,7 @@ func (p *InfinityProtocol) performAction(action *Action) {
 }
 
 func (p *InfinityProtocol) send(dst uint16, op uint8, requestData []byte, response interface{}) bool {
+	messagesSent.Inc()
 	f := InfinityFrame{src: devSAM, dst: dst, op: op, data: requestData}
 	act := &Action{requestFrame: &f, ch: make(chan bool)}
 
@@ -271,6 +319,7 @@ func (p *InfinityProtocol) send(dst uint16, op uint8, requestData []byte, respon
 		if err != nil {
 			log.Printf("Read failed:", err)
 			log.Printf("Data was %v :%x", reflect.TypeOf(response), act.responseFrame.data)
+			protocolReadErrors.Inc()
 			p.readErrors++
 			return false
 		}
@@ -291,6 +340,7 @@ func (p *InfinityProtocol) Write(dst uint16, table []byte, addr []byte, params i
 }
 
 func (p *InfinityProtocol) WriteTable(dst uint16, table InfinityTable, flags uint8) bool {
+	tableWrites.With(prometheus.Labels{"table": fmt.Sprintf("%T", table)}).Inc()
 	addr := table.addr()
 	fl := []byte{0x00, 0x00, flags}
 	return p.Write(dst, addr[:], fl, table)
@@ -301,6 +351,7 @@ func (p *InfinityProtocol) Read(dst uint16, addr InfinityTableAddr, params inter
 }
 
 func (p *InfinityProtocol) ReadTable(dst uint16, table InfinityTable) bool {
+	tableReads.With(prometheus.Labels{"table": fmt.Sprintf("%T", table)}).Inc()
 	addr := table.addr()
 	return p.send(dst, opREAD, addr[:], table)
 }
