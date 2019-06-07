@@ -92,7 +92,10 @@ Infinitive exposes a JSON API to retrieve and manipulate thermostat parameters.
    "holdDurationMins":0,
    "heatSetpoint": 68,
    "coolSetpoint": 74,
+<<<<<<< HEAD
    "targetHumidity":45,
+=======
+>>>>>>> e3a37e4de76f2cef32a1156d19cf0da771017f28
    "rawMode": 64
 }
 ```
@@ -114,12 +117,17 @@ Valid write values for `mode` are `off`, `auto`, `heat`, and `cool`.
 Additional read values for mode are `electric` and `heatpump` indicating "heat pump only" or "electric heat only" have been selected at the thermostat 
 Values for `fanMode` are `auto`, `low`, `med`, and `high`.
 
+<<<<<<< HEAD
 #### GET /api/airhandler
+=======
+#### GET /api/zone/1/airhandler
+>>>>>>> e3a37e4de76f2cef32a1156d19cf0da771017f28
 
 ```json
 {
 	"blowerRPM":0,
 	"airFlowCFM":0,
+<<<<<<< HEAD
 	"heatBits":"00000000",
 	"auxHeat":false
 }
@@ -130,11 +138,25 @@ Values for `fanMode` are `auto`, `low`, `med`, and `high`.
 ```json
 {
 	"tempUnit":"F",
+=======
+	"elecHeat":false
+}
+```
+
+#### GET /api/zone/1/heatpump
+
+```json
+{
+>>>>>>> e3a37e4de76f2cef32a1156d19cf0da771017f28
 	"coilTemp":28.8125,
 	"outsideTemp":31.375,
 	"stage":2
 }
 ```
+<<<<<<< HEAD
+=======
+
+>>>>>>> e3a37e4de76f2cef32a1156d19cf0da771017f28
 
 #### GET /api/zone/1/vacation
 
