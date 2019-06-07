@@ -7,7 +7,7 @@ import (
 
 type Cache map[string]interface{}
 
-var cache Cache = make(Cache)
+var cache = make(Cache)
 var mutex = &sync.Mutex{}
 
 func (c Cache) update(name string, data interface{}) {
