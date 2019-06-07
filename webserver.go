@@ -39,18 +39,13 @@ func webserver(port int) {
 		}
 	})
 
-<<<<<<< HEAD
 	api.GET("/airhandler", func(c *gin.Context) {
-=======
-	api.GET("/zone/1/airhandler", func(c *gin.Context) {
->>>>>>> e3a37e4de76f2cef32a1156d19cf0da771017f28
 		ah, ok := getAirHandler()
 		if ok {
 			c.JSON(200, ah)
 		}
 	})
 
-<<<<<<< HEAD
 	api.GET("/airhandler2", func(c *gin.Context) {
 		ah, ok := getAirHandler()
 		if ok {
@@ -59,16 +54,12 @@ func webserver(port int) {
 	})
 
 	api.GET("/heatpump", func(c *gin.Context) {
-=======
-	api.GET("/zone/1/heatpump", func(c *gin.Context) {
->>>>>>> e3a37e4de76f2cef32a1156d19cf0da771017f28
 		hp, ok := getHeatPump()
 		if ok {
 			c.JSON(200, hp)
 		}
 	})
 
-<<<<<<< HEAD
 	api.GET("/devices", func(c *gin.Context) {
 		dv, ok := getDevices()
 		if ok {
@@ -87,8 +78,6 @@ func webserver(port int) {
 
 	})
 
-=======
->>>>>>> e3a37e4de76f2cef32a1156d19cf0da771017f28
 	api.GET("/zone/1/vacation", func(c *gin.Context) {
 		vac := TStatVacationParams{}
 		ok := infinity.ReadTable(devTSTAT, &vac)
